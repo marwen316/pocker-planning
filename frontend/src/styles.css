@@ -4,6 +4,8 @@
   color: #243c36;
   background: #f5f6f2;
   font-synthesis: none;
+  font-size: 100%;
+  line-height: 1.5;
 }
 * {
   box-sizing: border-box;
@@ -65,14 +67,14 @@ header {
   border-radius: 10px;
   padding: 3px 10px;
   margin-right: 8px;
-  font-size: 28px;
+  font-size: 2rem;
 }
 .brand-light {
   font-weight: 400;
 }
 .beta {
   font:
-    700 9px "DM Sans",
+    700 0.75rem "DM Sans",
     sans-serif;
   letter-spacing: 1px;
   border: 1px solid #d4ddd5;
@@ -84,7 +86,7 @@ header {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
+  font-size: 0.9375rem;
   color: #6a7b71;
 }
 .live-dot {
@@ -99,7 +101,7 @@ main {
   padding: 38px 5vw 0;
 }
 .eyebrow {
-  font-size: 10px;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 1.8px;
   color: #6f7e71;
@@ -112,25 +114,25 @@ h3 {
   margin: 0;
 }
 h1 {
-  font-size: 38px;
+  font-size: 2.625rem;
   font-weight: 800;
   margin: 12px 0;
 }
 h2 {
-  font-size: 24px;
+  font-size: 1.625rem;
 }
 h3 {
-  font-size: 18px;
+  font-size: 1.25rem;
 }
 p {
   color: #768177;
-  font-size: 13px;
+  font-size: 1rem;
   line-height: 1.8;
 }
 small {
   display: block;
   color: #7e897e;
-  font-size: 11px;
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 .orange,
@@ -154,10 +156,10 @@ em {
 }
 .intro p {
   max-width: 390px;
-  font-size: 15px;
+  font-size: 1.0625rem;
 }
 .intro-foot {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: #829081;
   line-height: 2;
 }
@@ -207,7 +209,7 @@ i {
 .join-panel label:not(.role),
 legend,
 .next-panel label {
-  font-size: 12px;
+  font-size: 0.9375rem;
   font-weight: 600;
   display: block;
   margin: 18px 0 8px;
@@ -242,7 +244,7 @@ fieldset {
   margin-left: auto;
 }
 .role b {
-  font-size: 13px;
+  font-size: 1rem;
 }
 .role.selected {
   border-color: #456753;
@@ -257,7 +259,7 @@ input[type="radio"] {
   color: white;
   padding: 13px 20px;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: 0.9375rem;
   font-weight: 600;
 }
 .full {
@@ -269,7 +271,7 @@ input[type="radio"] {
 .privacy {
   text-align: center;
   margin-top: 16px;
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .session-top {
   display: flex;
@@ -282,7 +284,7 @@ input[type="radio"] {
 }
 .connected {
   letter-spacing: 0.7px;
-  font-size: 9px;
+  font-size: 0.75rem;
   background: #e7efdf;
   color: #648052;
   border-radius: 4px;
@@ -295,11 +297,11 @@ input[type="radio"] {
   padding: 11px 16px;
   border-radius: 6px;
   color: #536452;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 270px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 24px;
 }
 .board {
@@ -315,13 +317,13 @@ input[type="radio"] {
   margin: 26px 28px 15px;
 }
 .round {
-  font-size: 10px;
+  font-size: 0.8125rem;
   letter-spacing: 1px;
   color: #728366;
   font-weight: 700;
 }
 .status {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: #8a826b;
   background: #f7f3e7;
   padding: 5px 9px;
@@ -329,13 +331,15 @@ input[type="radio"] {
 }
 .board > h2 {
   margin: 0 28px 23px;
-  font-size: 21px;
+  font-size: 1.5rem;
 }
 .progress-row {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
   color: #85917e;
-  font-size: 10px;
+  font-size: 0.8125rem;
   margin: 0 28px 9px;
 }
 .progress {
@@ -372,14 +376,14 @@ input[type="radio"] {
 }
 .table-mark {
   color: #9aaa8e;
-  font-size: 28px;
+  font-size: 2rem;
 }
 .table-center b {
-  font-size: 12px;
+  font-size: 0.9375rem;
   margin: 6px;
 }
 .table-center small {
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .players {
   display: flex;
@@ -389,7 +393,7 @@ input[type="radio"] {
 }
 .player {
   text-align: center;
-  width: 85px;
+  width: 105px;
 }
 .player-card {
   width: 45px;
@@ -399,7 +403,7 @@ input[type="radio"] {
   border-radius: 6px;
   display: grid;
   place-items: center;
-  font-size: 24px;
+  font-size: 1.625rem;
   color: #b4bfaa;
   background: #f7f9f3;
   transition: all 0.35s;
@@ -422,10 +426,10 @@ input[type="radio"] {
   color: #92998c;
 }
 .player b {
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .player small {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .board-actions {
   border-top: 1px solid #edf0e7;
@@ -437,10 +441,10 @@ input[type="radio"] {
   gap: 12px;
 }
 .board-actions b {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .board-actions small {
-  font-size: 10px;
+  font-size: 0.8125rem;
   margin-top: 4px;
 }
 .side-panel {
@@ -453,7 +457,7 @@ input[type="radio"] {
   margin: 10px 0 18px;
 }
 .count {
-  font-size: 11px;
+  font-size: 0.875rem;
   letter-spacing: 0;
   background: #edf1e7;
   border-radius: 4px;
@@ -470,7 +474,7 @@ input[type="radio"] {
 .avatar {
   border-radius: 9px;
   background: #e9eddf;
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 600;
   width: 33px;
   height: 33px;
@@ -482,16 +486,20 @@ input[type="radio"] {
   background: #f2eade;
   color: #a18b70;
 }
+.member > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .member b {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .member small {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .member-state {
   margin-left: auto;
   color: #6e8d5b;
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .tip {
   padding: 20px;
@@ -502,22 +510,22 @@ input[type="radio"] {
 }
 .tip > span {
   color: #8c9464;
-  font-size: 22px;
+  font-size: 1.375rem;
 }
 .tip h3 {
-  font-size: 13px;
+  font-size: 1rem;
   letter-spacing: 0;
   margin: 7px 0;
 }
 .tip p {
-  font-size: 11px;
+  font-size: 0.875rem;
   margin-bottom: 0;
 }
 .next-panel {
   margin-top: 15px;
 }
 .next-panel input {
-  font-size: 11px;
+  font-size: 0.875rem;
   margin-bottom: 9px;
 }
 .deck {
@@ -533,14 +541,14 @@ input[type="radio"] {
   align-items: center;
 }
 .deck-title h3 {
-  font-size: 16px;
+  font-size: 1.125rem;
 }
 .deck-title p {
-  font-size: 11px;
+  font-size: 0.875rem;
   margin: 6px 0 21px;
 }
 .deck-tag {
-  font-size: 9px;
+  font-size: 0.75rem;
   letter-spacing: 1px;
   color: #919d83;
   border: 1px solid #e0e6d8;
@@ -568,14 +576,14 @@ input[type="radio"] {
   box-shadow: 0 3px 0 #eef1e7;
 }
 .estimate small {
-  font-size: 7px;
+  font-size: 0.6875rem;
   letter-spacing: 1px;
 }
 .estimate b {
-  font: 700 29px Manrope;
+  font: 700 2rem Manrope;
 }
 .estimate span {
-  font-size: 8px;
+  font-size: 0.75rem;
   color: #a4b194;
 }
 .estimate:hover:not(:disabled) {
@@ -593,7 +601,7 @@ input[type="radio"] {
   color: #ccdac0;
 }
 .average {
-  font-size: 28px;
+  font-size: 2rem;
   font-weight: 700;
   text-align: center;
 }
@@ -605,7 +613,7 @@ footer {
   display: flex;
   justify-content: space-between;
   padding: 23px 0;
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: #94a08b;
   margin-top: 30px;
 }
@@ -614,7 +622,7 @@ footer {
   background: #fff0e6;
   border: 1px solid #eac5aa;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 1rem;
   margin-bottom: 15px;
 }
 @keyframes flip {
@@ -627,7 +635,7 @@ footer {
 }
 @media (max-width: 1000px) {
   .workspace {
-    grid-template-columns: 1fr 230px;
+    grid-template-columns: minmax(0, 1fr) 280px;
     gap: 15px;
   }
   .cards {
@@ -637,7 +645,7 @@ footer {
     width: 65px;
   }
   .header-right {
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
 }
 @media (max-width: 760px) {
@@ -653,7 +661,7 @@ footer {
     padding: 15px 0;
   }
   .intro h1 {
-    font-size: 36px;
+    font-size: 2.375rem;
   }
   .demo-cards {
     height: 160px;
@@ -661,7 +669,7 @@ footer {
   .demo-cards span {
     width: 80px;
     height: 110px;
-    font-size: 35px;
+    font-size: 2.375rem;
   }
   .join-panel {
     padding: 25px;
@@ -671,10 +679,11 @@ footer {
   }
   .session-top {
     align-items: flex-start;
+    flex-wrap: wrap;
     gap: 10px;
   }
   h1 {
-    font-size: 28px;
+    font-size: 2rem;
   }
   .connected {
     display: block;
@@ -690,7 +699,7 @@ footer {
   }
   .board > h2 {
     margin-left: 18px;
-    font-size: 18px;
+    font-size: 1.25rem;
   }
   .progress-row {
     gap: 10px;
@@ -715,8 +724,8 @@ footer {
     width: 95%;
   }
   .session-top .quiet {
-    font-size: 10px;
-    white-space: nowrap;
+    font-size: 0.8125rem;
+    white-space: normal;
   }
   aside {
     display: grid;
@@ -733,6 +742,15 @@ footer {
     max-width: 250px;
   }
   .players {
+    gap: 10px;
+  }
+}
+@media (max-width: 480px) {
+  aside {
+    grid-template-columns: 1fr;
+  }
+  .board-top {
+    flex-wrap: wrap;
     gap: 10px;
   }
 }
