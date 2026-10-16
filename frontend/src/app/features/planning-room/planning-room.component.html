@@ -1,0 +1,294 @@
+<header>
+  <a class="brand" href="./"
+    ><span class="brand-icon">▧</span> planning<span class="brand-light"
+      >room</span
+    ><span class="beta">BETA</span></a
+  >
+  <div class="header-right">
+    <span class="live-dot"></span> Un jeu collectif, des décisions éclairées
+  </div>
+</header>
+<main>
+  @if (error()) {
+    <div role="alert" class="alert">{{ error() }}</div>
+  }
+  @if (!session()) {
+    <section class="welcome">
+      <div class="intro">
+        <div class="eyebrow">LE BON RYTHME, EN ÉQUIPE</div>
+        <h1>Moins de suppositions.<br />Plus de <em>convictions.</em></h1>
+        <p>
+          Un espace pour confronter vos idées, partager vos estimations et
+          avancer ensemble.
+        </p>
+        <div class="demo-cards" aria-hidden="true">
+          <span>3</span><span>5</span><span>8</span>
+        </div>
+        <div class="intro-foot">
+          Fibonacci jusqu’à 34 <i>·</i> Votes confidentiels <i>·</i> Pause café
+          incluse
+        </div>
+      </div>
+      <form class="join-panel" (ngSubmit)="join()">
+        <div class="eyebrow">BIENVENUE À LA TABLE</div>
+        <h2>On fait connaissance ?</h2>
+        <p>Choisis ton rôle et rejoins ton équipe.</p>
+        <label for="first">Prénom</label
+        ><input
+          id="first"
+          name="first"
+          [(ngModel)]="firstName"
+          maxlength="40"
+          required
+          autocomplete="given-name"
+          placeholder="Ton prénom"
+        /><label for="last">Nom</label
+        ><input
+          id="last"
+          name="last"
+          [(ngModel)]="lastName"
+          maxlength="40"
+          required
+          autocomplete="family-name"
+          placeholder="Ton nom"
+        />
+        <fieldset>
+          <legend>Ton rôle pour cette session</legend>
+          <label class="role" [class.selected]="role === 'DEVELOPER'"
+            ><input
+              type="radio"
+              name="role"
+              value="DEVELOPER"
+              [(ngModel)]="role"
+            /><span
+              ><b>Développeur</b
+              ><small>Je participe aux estimations</small></span
+            ><span>⌘</span></label
+          ><label class="role" [class.selected]="role === 'VISITOR'"
+            ><input
+              type="radio"
+              name="role"
+              value="VISITOR"
+              [(ngModel)]="role"
+            /><span
+              ><b>Visiteur</b
+              ><small>J’observe et je peux révéler les cartes</small></span
+            ><span>◉</span></label
+          >
+        </fieldset>
+        <button
+          class="primary full"
+          [disabled]="busy() || !firstName.trim() || !lastName.trim()"
+        >
+          Rejoindre la session <span>→</span></button
+        ><small class="privacy"
+          >Pas de compte. Juste ton équipe et tes idées.</small
+        >
+      </form>
+    </section>
+  } @else {
+    @let s = session()!;
+    <div class="session-top">
+      <div>
+        <div class="eyebrow">
+          ESPACE D’ÉQUIPE <span class="connected">● EN DIRECT</span>
+        </div>
+        <h1>À vous de jouer<span class="orange">.</span></h1>
+        <p>Chaque point de vue compte. Prenez le temps d’en discuter.</p>
+      </div>
+      <button class="quiet" (click)="leave()">Quitter la session ↗</button>
+    </div>
+    <div class="workspace">
+      <section class="board">
+        <div class="board-top">
+          <span class="round"
+            >TOUR {{ s.round.toString().padStart(2, "0") }}</span
+          ><span class="status">{{
+            s.revealed ? "Estimations révélées" : "Estimation en cours"
+          }}</span>
+        </div>
+        <h2>{{ s.topic }}</h2>
+        <div class="progress-row">
+          <span
+            >{{ voted() }} / {{ developers().length }} développeurs ont
+            voté</span
+          ><span>{{
+            s.revealed ? "Discussion ouverte" : "Les votes restent secrets"
+          }}</span>
+        </div>
+        <div class="progress">
+          <span
+            [style.width.%]="
+              developers().length ? (voted() / developers().length) * 100 : 0
+            "
+          ></span>
+        </div>
+        <div class="table-area">
+          <div class="table-center">
+            <span class="table-mark">▧</span
+            ><b>{{
+              s.revealed
+                ? "Les cartes sont sur table"
+                : "La réflexion est collective."
+            }}</b
+            ><small>{{
+              s.revealed
+                ? "Comparez, échangez, puis recommencez."
+                : "L’estimation reste personnelle."
+            }}</small>
+          </div>
+          <div class="players">
+            @for (p of s.participants; track p.id) {
+              <div class="player">
+                <div
+                  class="player-card"
+                  [class.ready]="p.voted"
+                  [class.revealed]="s.revealed"
+                  [class.observer]="p.role === 'VISITOR'"
+                >
+                  {{
+                    p.role === "VISITOR"
+                      ? "◉"
+                      : s.revealed
+                        ? label(p.card)
+                        : p.voted
+                          ? "✓"
+                          : "·"
+                  }}
+                </div>
+                <b
+                  >{{ p.firstName }} {{ p.lastName.charAt(0) }}.
+                  {{ p.self ? "(toi)" : "" }}</b
+                ><small>{{
+                  p.role === "VISITOR"
+                    ? "Visiteur"
+                    : p.voted
+                      ? "A voté"
+                      : "Réfléchit…"
+                }}</small>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="board-actions">
+          <div>
+            <b>{{
+              s.revealed
+                ? "Place à la discussion"
+                : s.canReveal
+                  ? "Prêts pour la révélation ?"
+                  : "Chacun à son rythme"
+            }}</b
+            ><small>{{
+              s.revealed
+                ? "La moyenne est un repère, pas une décision."
+                : "Les développeurs révèlent quand tout le monde a voté."
+            }}</small>
+          </div>
+          @if (!s.revealed) {
+            <button
+              class="primary"
+              (click)="reveal()"
+              [disabled]="!s.canReveal || busy()"
+            >
+              ◉ Révéler les cartes
+            </button>
+          } @else {
+            <div class="average">{{ average() }} <small>moyenne</small></div>
+          }
+        </div>
+      </section>
+      <aside>
+        <section class="side-panel">
+          <div class="eyebrow">AUTOUR DE LA TABLE</div>
+          <h3>
+            L’équipe <span class="count">{{ s.participants.length }}</span>
+          </h3>
+          @for (p of s.participants; track p.id) {
+            <div class="member">
+              <span class="avatar" [class.visitor]="p.role === 'VISITOR'"
+                >{{ p.firstName.charAt(0) }}{{ p.lastName.charAt(0) }}</span
+              >
+              <div>
+                <b>{{ p.firstName }} {{ p.lastName }}</b
+                ><small
+                  >{{ p.role === "VISITOR" ? "Visiteur" : "Développeur"
+                  }}{{ p.self ? " · Toi" : "" }}</small
+                >
+              </div>
+              <span class="member-state">{{
+                p.role === "VISITOR" ? "◉" : p.voted ? "✓" : "···"
+              }}</span>
+            </div>
+          }
+        </section>
+        <section class="tip">
+          <span>✦</span>
+          <h3>L’écart fait la discussion.</h3>
+          <p>
+            Un 3 et un 13 ? C’est le moment de partager vos hypothèses, pas de
+            couper la différence.
+          </p>
+        </section>
+        <section class="next-panel">
+          <label for="topic">Prochaine estimation</label
+          ><input
+            id="topic"
+            [(ngModel)]="title"
+            maxlength="160"
+            placeholder="Titre de la tâche…"
+          /><button class="quiet full" (click)="next()" [disabled]="busy()">
+            Nouveau tour ↗
+          </button>
+        </section>
+      </aside>
+    </div>
+    <section class="deck">
+      <div class="deck-title">
+        <div>
+          <h3>
+            {{
+              me()?.role === "VISITOR"
+                ? "Tu as une place au premier rang."
+                : "Ton estimation"
+            }}
+          </h3>
+          <p>
+            {{
+              me()?.role === "VISITOR"
+                ? "Observe les échanges et révèle les cartes quand tu le souhaites."
+                : s.revealed
+                  ? "Le tour est terminé. Prêt pour la suite ?"
+                  : "Choisis la carte qui reflète la complexité, pas le temps passé."
+            }}
+          </p>
+        </div>
+        <span class="deck-tag">FIBONACCI</span>
+      </div>
+      @if (me()?.role === "DEVELOPER") {
+        <div class="cards">
+          @for (card of s.cards; track card) {
+            <button
+              class="estimate"
+              [class.chosen]="me()?.card === card"
+              [disabled]="s.revealed || busy()"
+              (click)="vote(card)"
+              [attr.aria-pressed]="me()?.card === card"
+              [attr.aria-label]="
+                card === 'COFFEE' ? 'Pause café' : card + ' points'
+              "
+            >
+              <small>{{ card === "COFFEE" ? "PAUSE" : "POINTS" }}</small
+              ><b>{{ label(card) }}</b
+              ><span>{{ card === "COFFEE" ? "on souffle" : "◆" }}</span>
+            </button>
+          }
+        </div>
+      }
+    </section>
+  }
+  <footer>
+    <span>planningroom <i>·</i> Pensé pour réfléchir ensemble.</span
+    ><span>Un vote. Une conversation. Une équipe.</span>
+  </footer>
+</main>
