@@ -97,4 +97,38 @@ class PlanningServiceTest {
     clock.now = clock.now.plusSeconds(61);
     assertThatThrownBy(() -> s.state(a)).isInstanceOf(ResponseStatusException.class);
   }
+
+  @Test
+  void connectedParticipantDoesNotExpireWhenThereAreNoActions() {
+    class MutableClock extends java.time.Clock {
+      java.time.Instant now = java.time.Instant.parse("2026-01-01T00:00:00Z");
+
+      public java.time.ZoneId getZone() {
+        return java.time.ZoneOffset.UTC;
+      }
+
+      public java.time.Clock withZone(java.time.ZoneId zone) {
+        return this;
+      }
+
+      public java.time.Instant instant() {
+        return now;
+      }
+    }
+    var clock = new MutableClock();
+    var service = new PlanningService(clock);
+    var id = service.join(null, new Join("Alice", "Test", Role.DEVELOPER));
+    service.subscribe(id);
+    clock.now = clock.now.plusSeconds(120);
+    service.heartbeat();
+    assertThat(service.state(id).participants()).hasSize(1);
+  }
+
+  @Test
+  void revisionsAdvanceOnlyWhenStateChanges() {
+    var alice = dev("Alice");
+    long before = service.state(alice).revision();
+    assertThat(service.state(alice).revision()).isEqualTo(before);
+    assertThat(service.vote(alice, "8").revision()).isGreaterThan(before);
+  }
 }

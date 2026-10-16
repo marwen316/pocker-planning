@@ -9,6 +9,7 @@ export interface Participant {
   self: boolean;
 }
 export interface Session {
+  revision: number;
   topic: string;
   round: number;
   revealed: boolean;

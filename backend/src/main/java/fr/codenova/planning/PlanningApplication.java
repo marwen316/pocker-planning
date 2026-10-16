@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 
+@org.springframework.scheduling.annotation.EnableScheduling
 @SpringBootApplication
 public class PlanningApplication extends SpringBootServletInitializer {
   @Override

@@ -1,6 +1,6 @@
 import { Component, DestroyRef, inject, signal, computed } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { Observable, timer, exhaustMap, catchError, EMPTY } from "rxjs";
+import { Observable, Subscription } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { SessionService } from "../../core/session.service";
 import { Session, Role } from "../../core/session.model";
@@ -38,32 +38,62 @@ export class PlanningRoomComponent {
         )
       : "—";
   });
+  private events?: Subscription;
+  private checkingConnection = false;
   constructor() {
     this.api
       .state()
-      .subscribe({ next: (s) => this.session.set(s), error: () => {} });
-    timer(1000, 1000)
-      .pipe(
-        exhaustMap(() =>
-          this.session()
-            ? this.api.state().pipe(
-                catchError((e) => {
-                  if (e.status === 401) this.session.set(null);
-                  else
-                    this.error.set(
-                      "Connexion interrompue. Nouvelle tentative en cours…",
-                    );
-                  return EMPTY;
-                }),
-              )
-            : EMPTY,
-        ),
-        takeUntilDestroyed(this.destroy),
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (s) => {
+          this.apply(s);
+          this.connect();
+        },
+        error: () => {},
+      });
+    this.destroy.onDestroy(() => this.events?.unsubscribe());
+  }
+  private connect() {
+    if (this.events && !this.events.closed) return;
+    this.events = this.api
+      .events(
+        () => {
+          this.error.set(
+            "Connexion interrompue. Reconnexion automatique en cours…",
+          );
+          // One diagnostic request per failed connection, never a periodic poll.
+          if (this.checkingConnection) return;
+          this.checkingConnection = true;
+          this.api
+            .state()
+            .pipe(takeUntilDestroyed(this.destroy))
+            .subscribe({
+              next: () => {
+                this.checkingConnection = false;
+              },
+              error: (e) => {
+                this.checkingConnection = false;
+                if (e.status === 401) this.endSession();
+              },
+            });
+        },
+        () => this.endSession(),
       )
+      .pipe(takeUntilDestroyed(this.destroy))
       .subscribe((s) => {
-        this.session.set(s);
+        this.apply(s);
         if (this.error().startsWith("Connexion")) this.error.set("");
       });
+  }
+  private apply(state: Session) {
+    // A delayed action response must not overwrite a newer SSE snapshot.
+    if (!this.session() || state.revision >= this.session()!.revision)
+      this.session.set(state);
+  }
+  private endSession() {
+    this.events?.unsubscribe();
+    this.events = undefined;
+    this.session.set(null);
   }
   run(request: Observable<Session>) {
     if (this.busy()) return;
@@ -71,7 +101,8 @@ export class PlanningRoomComponent {
     this.error.set("");
     request.subscribe({
       next: (s) => {
-        this.session.set(s);
+        this.apply(s);
+        this.connect();
         this.busy.set(false);
       },
       error: (e) => {
@@ -99,12 +130,10 @@ export class PlanningRoomComponent {
     this.title = "";
   }
   leave() {
-    this.api
-      .leave()
-      .subscribe({
-        next: () => this.session.set(null),
-        error: () => this.error.set("Impossible de quitter. Réessaie."),
-      });
+    this.api.leave().subscribe({
+      next: () => this.endSession(),
+      error: () => this.error.set("Impossible de quitter. Réessaie."),
+    });
   }
   label(card: string | null) {
     return card === "COFFEE" ? "☕" : (card ?? "—");

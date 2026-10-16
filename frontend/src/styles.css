@@ -1,10 +1,14 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
 :root {
-  font-family: "DM Sans", sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
   color: #243c36;
   background: #f5f6f2;
   font-synthesis: none;
-  font-size: 100%;
+  font-size: 112.5%;
   line-height: 1.5;
 }
 * {
@@ -55,7 +59,7 @@ header {
   align-items: center;
   gap: 5px;
   font:
-    800 24px Manrope,
+    800 24px system-ui,
     sans-serif;
   text-decoration: none;
   color: #243c36;
@@ -74,7 +78,7 @@ header {
 }
 .beta {
   font:
-    700 0.75rem "DM Sans",
+    700 0.875rem system-ui,
     sans-serif;
   letter-spacing: 1px;
   border: 1px solid #d4ddd5;
@@ -86,7 +90,7 @@ header {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   color: #6a7b71;
 }
 .live-dot {
@@ -101,7 +105,7 @@ main {
   padding: 38px 5vw 0;
 }
 .eyebrow {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 1.8px;
   color: #6f7e71;
@@ -109,7 +113,12 @@ main {
 h1,
 h2,
 h3 {
-  font-family: Manrope, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
   letter-spacing: -1px;
   margin: 0;
 }
@@ -127,7 +136,7 @@ h3 {
 p {
   color: #768177;
   font-size: 1rem;
-  line-height: 1.8;
+  line-height: 1.7;
 }
 small {
   display: block;
@@ -159,7 +168,7 @@ em {
   font-size: 1.0625rem;
 }
 .intro-foot {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: #829081;
   line-height: 2;
 }
@@ -181,7 +190,7 @@ i {
   border-radius: 13px;
   border: 1px solid #d6dfd0;
   background: #fff;
-  font: 700 48px Manrope;
+  font: 700 48px system-ui;
   box-shadow: 0 12px 25px #183b3010;
   transform: rotate(-15deg);
 }
@@ -209,7 +218,7 @@ i {
 .join-panel label:not(.role),
 legend,
 .next-panel label {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 600;
   display: block;
   margin: 18px 0 8px;
@@ -259,7 +268,7 @@ input[type="radio"] {
   color: white;
   padding: 13px 20px;
   border-radius: 7px;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 .full {
@@ -271,7 +280,7 @@ input[type="radio"] {
 .privacy {
   text-align: center;
   margin-top: 16px;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
 }
 .session-top {
   display: flex;
@@ -284,7 +293,7 @@ input[type="radio"] {
 }
 .connected {
   letter-spacing: 0.7px;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   background: #e7efdf;
   color: #648052;
   border-radius: 4px;
@@ -301,7 +310,7 @@ input[type="radio"] {
 }
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 24px;
 }
 .board {
@@ -317,13 +326,13 @@ input[type="radio"] {
   margin: 26px 28px 15px;
 }
 .round {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   letter-spacing: 1px;
   color: #728366;
   font-weight: 700;
 }
 .status {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: #8a826b;
   background: #f7f3e7;
   padding: 5px 9px;
@@ -339,7 +348,7 @@ input[type="radio"] {
   gap: 8px;
   justify-content: space-between;
   color: #85917e;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   margin: 0 28px 9px;
 }
 .progress {
@@ -379,11 +388,11 @@ input[type="radio"] {
   font-size: 2rem;
 }
 .table-center b {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   margin: 6px;
 }
 .table-center small {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
 }
 .players {
   display: flex;
@@ -426,10 +435,10 @@ input[type="radio"] {
   color: #92998c;
 }
 .player b {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
 }
 .player small {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
 }
 .board-actions {
   border-top: 1px solid #edf0e7;
@@ -441,10 +450,10 @@ input[type="radio"] {
   gap: 12px;
 }
 .board-actions b {
-  font-size: 0.9375rem;
+  font-size: 1rem;
 }
 .board-actions small {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   margin-top: 4px;
 }
 .side-panel {
@@ -494,12 +503,12 @@ input[type="radio"] {
   font-size: 0.875rem;
 }
 .member small {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
 }
 .member-state {
   margin-left: auto;
   color: #6e8d5b;
-  font-size: 0.9375rem;
+  font-size: 1rem;
 }
 .tip {
   padding: 20px;
@@ -548,7 +557,7 @@ input[type="radio"] {
   margin: 6px 0 21px;
 }
 .deck-tag {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   letter-spacing: 1px;
   color: #919d83;
   border: 1px solid #e0e6d8;
@@ -566,8 +575,8 @@ input[type="radio"] {
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  width: 75px;
-  height: 110px;
+  width: 88px;
+  height: 126px;
   padding: 10px 6px;
   border: 1px solid #dbe2d3;
   border-radius: 8px;
@@ -576,14 +585,14 @@ input[type="radio"] {
   box-shadow: 0 3px 0 #eef1e7;
 }
 .estimate small {
-  font-size: 0.6875rem;
-  letter-spacing: 1px;
+  font-size: 0.875rem;
+  letter-spacing: 0;
 }
 .estimate b {
-  font: 700 2rem Manrope;
+  font: 700 2rem system-ui;
 }
 .estimate span {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: #a4b194;
 }
 .estimate:hover:not(:disabled) {
@@ -613,7 +622,7 @@ footer {
   display: flex;
   justify-content: space-between;
   padding: 23px 0;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: #94a08b;
   margin-top: 30px;
 }
@@ -642,10 +651,10 @@ footer {
     gap: 8px;
   }
   .estimate {
-    width: 65px;
+    width: 78px;
   }
   .header-right {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
   }
 }
 @media (max-width: 760px) {
@@ -668,7 +677,7 @@ footer {
   }
   .demo-cards span {
     width: 80px;
-    height: 110px;
+    height: 126px;
     font-size: 2.375rem;
   }
   .join-panel {
@@ -711,8 +720,8 @@ footer {
     display: none;
   }
   .estimate {
-    width: calc(20% - 9px);
-    height: 95px;
+    width: calc(25% - 9px);
+    height: 115px;
   }
   .deck-title p {
     max-width: 90%;
@@ -724,7 +733,7 @@ footer {
     width: 95%;
   }
   .session-top .quiet {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     white-space: normal;
   }
   aside {

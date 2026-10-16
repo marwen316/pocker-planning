@@ -26,6 +26,7 @@ public final class Contracts {
       boolean self) {}
 
   public record State(
+      long revision,
       String topic,
       int round,
       boolean revealed,

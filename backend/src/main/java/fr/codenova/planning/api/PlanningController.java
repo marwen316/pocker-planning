@@ -2,9 +2,11 @@ package fr.codenova.planning.api;
 
 import fr.codenova.planning.api.Contracts.*;
 import fr.codenova.planning.service.PlanningService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/session")
@@ -28,6 +30,13 @@ public class PlanningController {
   @GetMapping
   public State state(HttpSession s) {
     return service.state(id(s));
+  }
+
+  @GetMapping(value = "/events", produces = "text/event-stream")
+  public SseEmitter events(HttpSession s, HttpServletResponse response) {
+    response.setHeader("Cache-Control", "no-store");
+    response.setHeader("X-Accel-Buffering", "no");
+    return service.subscribe(id(s));
   }
 
   @PutMapping("/vote")
