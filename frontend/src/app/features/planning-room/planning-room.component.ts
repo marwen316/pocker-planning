@@ -86,7 +86,7 @@ export class PlanningRoomComponent {
       });
   }
   private apply(state: Session) {
-    // A delayed action response must not overwrite a newer SSE snapshot.
+    // A delayed action response must not overwrite a newer WebSocket snapshot.
     if (!this.session() || state.revision >= this.session()!.revision)
       this.session.set(state);
   }

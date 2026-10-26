@@ -9,14 +9,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Service
 public class PlanningService {
   public static final List<String> CARDS =
       List.of("0", "1", "2", "3", "5", "8", "13", "21", "34", "COFFEE");
   private final Map<String, Member> members = new LinkedHashMap<>();
-  private final Map<String, Set<SseEmitter>> streams = new HashMap<>();
+  private final Map<String, Set<LiveConnection>> streams = new HashMap<>();
   private final Clock clock;
   private String topic = "Quelle complexité pour cette tâche ?";
   private int round = 1;
@@ -152,72 +151,72 @@ public class PlanningService {
     broadcast();
   }
 
-  public synchronized SseEmitter subscribe(String id) {
+  public synchronized void subscribe(String id, LiveConnection connection) {
     Member member = require(id);
-    // A bounded stream lifetime also lets the browser revalidate its HTTP session.
-    SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
-    streams.computeIfAbsent(id, key -> new HashSet<>()).add(emitter);
-    emitter.onCompletion(() -> disconnect(id, emitter));
-    emitter.onTimeout(
-        () -> {
-          disconnect(id, emitter);
-          emitter.complete();
-        });
-    emitter.onError(error -> disconnect(id, emitter));
-    send(id, emitter, SseEmitter.event().name("state").reconnectTime(3000).data(snapshot(member)));
-    return emitter;
+    streams.computeIfAbsent(id, key -> new HashSet<>()).add(connection);
+    try {
+      connection.state(snapshot(member));
+    } catch (IOException | IllegalStateException error) {
+      failed(id, connection);
+    }
   }
 
-  private synchronized void disconnect(String id, SseEmitter emitter) {
-    Set<SseEmitter> connections = streams.get(id);
-    if (connections != null) {
-      connections.remove(emitter);
-      if (connections.isEmpty()) {
-        streams.remove(id);
-        Member member = members.get(id);
-        if (member != null) member.seen = clock.instant();
-      }
+  public synchronized void disconnect(String id, LiveConnection connection) {
+    Set<LiveConnection> connections = streams.get(id);
+    if (connections != null && connections.remove(connection) && connections.isEmpty()) {
+      streams.remove(id);
+      Member member = members.get(id);
+      if (member != null) member.seen = clock.instant();
     }
   }
 
   private void closeStreams(String id) {
-    Set<SseEmitter> connections = streams.remove(id);
+    Set<LiveConnection> connections = streams.remove(id);
     if (connections != null)
-      for (SseEmitter emitter : connections) {
+      for (LiveConnection connection : connections) {
         try {
-          emitter.send(SseEmitter.event().name("session-ended").data("Session terminée"));
-        } catch (IOException | IllegalStateException ignored) {
-          /* Connection already closed. */
+          connection.close();
+        } catch (IOException ignored) {
+          /* Already disconnected. */
         }
-        emitter.complete();
       }
   }
 
-  private void send(String id, SseEmitter emitter, SseEmitter.SseEventBuilder event) {
+  private void failed(String id, LiveConnection connection) {
+    disconnect(id, connection);
     try {
-      emitter.send(event);
-    } catch (IOException | IllegalStateException error) {
-      disconnect(id, emitter);
-      // A failed servlet write is completed by the container's async error handling.
+      connection.close();
+    } catch (IOException ignored) {
+      /* Already disconnected. */
     }
   }
 
   private void broadcast() {
-    // Build a different snapshot per participant; never broadcast another person's hidden vote.
     for (var entry : new ArrayList<>(streams.entrySet())) {
       Member member = members.get(entry.getKey());
       if (member == null) continue;
       State state = snapshot(member);
-      for (SseEmitter emitter : new ArrayList<>(entry.getValue()))
-        send(member.id, emitter, SseEmitter.event().name("state").data(state));
+      for (LiveConnection connection : new ArrayList<>(entry.getValue())) {
+        try {
+          connection.state(state);
+        } catch (IOException | IllegalStateException error) {
+          failed(member.id, connection);
+        }
+      }
     }
   }
 
   @Scheduled(fixedDelay = 15000)
   public synchronized void heartbeat() {
-    for (var entry : new ArrayList<>(streams.entrySet()))
-      for (SseEmitter emitter : new ArrayList<>(entry.getValue()))
-        send(entry.getKey(), emitter, SseEmitter.event().comment("keepalive"));
+    for (var entry : new ArrayList<>(streams.entrySet())) {
+      for (LiveConnection connection : new ArrayList<>(entry.getValue())) {
+        try {
+          connection.heartbeat();
+        } catch (IOException | IllegalStateException error) {
+          failed(entry.getKey(), connection);
+        }
+      }
+    }
     prune();
   }
 }

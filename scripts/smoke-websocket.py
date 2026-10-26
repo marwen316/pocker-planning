@@ -1,5 +1,9 @@
-"""Exercise the packaged JAR with real HTTP sessions and SSE connections (stdlib only)."""
+"""Exercise the packaged JAR with real HTTP sessions and WebSocket connections (stdlib only)."""
 import argparse
+import base64
+import hashlib
+import os
+import struct
 import http.cookiejar
 import json
 import socket
@@ -36,30 +40,69 @@ def request(client, path='', method='GET', data=None):
         return error.code, error.read().decode()
 
 
+class SocketStream:
+    def __init__(self, sock, reader):
+        self.sock, self.reader = sock, reader
+    def exact(self, count):
+        value = self.reader.read(count)
+        if len(value) != count:
+            raise AssertionError("WebSocket closed unexpectedly")
+        return value
+    def message(self):
+        first, second = self.exact(2)
+        length = second & 127
+        if length == 126: length = struct.unpack("!H", self.exact(2))[0]
+        if length == 127: length = struct.unpack("!Q", self.exact(8))[0]
+        assert not (second & 128), "Server frames must not be masked"
+        payload = self.exact(length)
+        if first & 15 == 8:
+            assert struct.unpack("!H", payload[:2])[0] == 1008
+            return {"type":"session-ended"}
+        assert first & 128 and first & 15 == 1, "Expected final text frame"
+        return json.loads(payload)
+    def close(self):
+        self.reader.close()
+        self.sock.close()
+
+
 def event(stream):
-    lines = []
-    while True:
-        line = stream.readline().decode().rstrip('\r\n')
-        if not line:
-            if lines:
-                return lines
-            raise AssertionError('Unexpected end of SSE stream')
-        lines.append(line)
+    return stream.message()
 
 
 def state(stream):
     while True:
-        lines = event(stream)
-        if 'event:state' in lines:
-            return json.loads(next(line[5:] for line in lines if line.startswith('data:')))
+        message = event(stream)
+        if message["type"] == "state":
+            return message["data"]
 
 
-def open_stream(client):
-    stream = client.open(root + 'api/session/events', timeout=25)
-    assert stream.headers.get_content_type() == 'text/event-stream'
-    assert stream.headers['X-Accel-Buffering'] == 'no'
-    assert stream.headers['Cache-Control'] == 'no-store'
-    return stream
+def open_stream(client, expected=101, origin=None):
+    url = root + "api/session/ws"
+    req = urllib.request.Request(url)
+    for handler in client.handlers:
+        if isinstance(handler, urllib.request.HTTPCookieProcessor):
+            handler.cookiejar.add_cookie_header(req)
+    key = base64.b64encode(os.urandom(16)).decode()
+    sock = socket.create_connection(("127.0.0.1",port),timeout=25)
+    reader = sock.makefile("rb")
+    headers = {"Host":f"127.0.0.1:{port}", "Upgrade":"websocket",
+        "Connection":"Upgrade", "Sec-WebSocket-Key":key, "Sec-WebSocket-Version":"13",
+        "Origin": origin or root.rstrip("/")}
+    if req.get_header("Cookie"): headers["Cookie"] = req.get_header("Cookie")
+    sock.sendall(("GET /api/session/ws HTTP/1.1\r\n" +
+        "".join(f"{k}: {v}\r\n" for k,v in headers.items()) + "\r\n").encode())
+    status = int(reader.readline().split()[1])
+    response_headers = {}
+    while True:
+        line = reader.readline().decode().strip()
+        if not line: break
+        k,v = line.split(":",1); response_headers[k.lower()] = v.strip()
+    assert status == expected, (status, response_headers)
+    if status != 101:
+        reader.close();sock.close();return None
+    accept=base64.b64encode(hashlib.sha1((key+"258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
+    assert response_headers["sec-websocket-accept"] == accept
+    return SocketStream(sock,reader)
 
 
 def card(snapshot, name):
@@ -82,10 +125,11 @@ with tempfile.TemporaryFile(mode='w+') as log:
         else:
             raise AssertionError('JAR did not start in 20 seconds')
         assert status == 200 and '<app-root>' in html
-        assert request(visitor, 'api/session/events')[0] == 401
+        open_stream(visitor, expected=401)
         for client, name in [(alice, 'Alice'), (bob, 'Bob')]:
             assert request(client, 'api/session/join', 'POST',
                 {'firstName': name, 'lastName': 'Test', 'role': 'DEVELOPER'})[0] == 200
+        open_stream(alice, expected=403, origin="https://other.example")
         a, b = open_stream(alice), open_stream(bob)
         streams.extend([a, b])
         initial_a, initial_b = state(a), state(b)
@@ -116,17 +160,16 @@ with tempfile.TemporaryFile(mode='w+') as log:
         assert request(visitor, 'api/session/vote', 'PUT', {'card': '5'})[0] == 403
         assert request(visitor, 'api/session/reveal', 'POST')[0] == 200
         assert state(a)['revealed'] and state(reconnected)['revealed']
-        # No state is pushed while idle; a comment maintains this same HTTP connection.
+        # No state is pushed while idle; a heartbeat maintains the same WebSocket connection.
         heartbeat = event(a)
-        assert any(line.startswith(':keepalive') for line in heartbeat), heartbeat
-        assert not any(line.startswith('data:') for line in heartbeat)
+        assert heartbeat["type"] == "heartbeat", heartbeat
         assert request(bob, 'api/session', 'DELETE')[0] == 200
-        while 'event:session-ended' not in event(reconnected):
+        while event(reconnected)["type"] != "session-ended":
             pass
         assert len(state(a)['participants']) == 2
         request(alice, 'api/session', 'DELETE')
         request(visitor, 'api/session', 'DELETE')
-        print('SSE smoke passed: real JAR, context path, push, privacy, reconnect, roles, reset, heartbeat, leave.')
+        print('WebSocket smoke passed: real JAR, context path, push, privacy, reconnect, roles, reset, heartbeat, leave.')
     except BaseException:
         log.seek(0)
         print(log.read())

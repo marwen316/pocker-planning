@@ -1,6 +1,6 @@
 {
   "name": "pocker-planning-frontend",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0-rc.3",
   "private": true,
   "scripts": {
     "start": "ng serve --proxy-config proxy.conf.json",

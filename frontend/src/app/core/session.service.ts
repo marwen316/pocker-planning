@@ -11,17 +11,37 @@ export class SessionService {
   }
   events(onConnectionError: () => void, onSessionEnded: () => void) {
     return new Observable<Session>((subscriber) => {
-      const source = new EventSource(this.url + "/events");
-      source.addEventListener("state", (event) => {
-        subscriber.next(JSON.parse((event as MessageEvent).data) as Session);
-      });
-      source.addEventListener("session-ended", () => {
-        source.close();
-        onSessionEnded();
-        subscriber.complete();
-      });
-      source.onerror = () => onConnectionError();
-      return () => source.close();
+      let socket: WebSocket | undefined;
+      let retry: ReturnType<typeof setTimeout> | undefined;
+      let stopped = false;
+      const url = new URL(this.url + "/ws", location.href);
+      url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      const connect = () => {
+        if (stopped) return;
+        socket = new WebSocket(url);
+        socket.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          if (message.type === "state")
+            subscriber.next(message.data as Session);
+        };
+        socket.onclose = (event) => {
+          if (stopped) return;
+          if (event.code === 1008) {
+            stopped = true;
+            onSessionEnded();
+            subscriber.complete();
+          } else {
+            onConnectionError();
+            if (!stopped) retry = setTimeout(connect, 3000);
+          }
+        };
+      };
+      connect();
+      return () => {
+        stopped = true;
+        clearTimeout(retry);
+        socket?.close();
+      };
     });
   }
   join(firstName: string, lastName: string, role: Role) {

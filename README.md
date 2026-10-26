@@ -11,7 +11,7 @@ Application d’estimation collective : Angular 20, Spring Boot 3.5, Java 21, JA
 - Cartes : `0, 1, 2, 3, 5, 8, 13, 21, 34` et pause café. Le café compte comme un vote, mais ne compte pas dans la moyenne.
 - Un nouveau tour efface tous les votes ; chacun peut le lancer et renseigner une nouvelle tâche.
 - Les votes des autres sont absents des réponses API avant révélation. Les droits sont contrôlés par le serveur.
-- Synchronisation par SSE : une connexion persistante reçoit les changements ; aucun polling périodique. Le serveur envoie un commentaire keepalive toutes les 15 secondes sur cette même connexion. Départ explicite ou retrait après 60 secondes sans connexion SSE active après détection de la déconnexion. Un nouvel arrivant développeur doit voter avant une révélation par développeur.
+- Synchronisation par WebSocket : une connexion persistante reçoit les changements ; aucun polling périodique. Le serveur envoie un message heartbeat toutes les 15 secondes sur cette même connexion. Départ explicite ou retrait après 60 secondes sans connexion WebSocket active après détection de la déconnexion. Un nouvel arrivant développeur doit voter avant une révélation par développeur.
 
 ## Branche dev2 : JAR, Docker et tunnel Cloudflare
 
@@ -44,11 +44,13 @@ mvn clean verify
 java -jar target/pocker-planning.jar
 ```
 
-Ouvrir **http://localhost:8080/**. La CI produit l’artifact `pocker-planning-jar`, vérifie le scénario SSE réel et construit/teste l’image Docker. Aucune image n’est publiée dans un registre.
+Ouvrir **http://localhost:8080/**. La CI produit l’artifact `pocker-planning-jar`, vérifie le scénario WebSocket réel et construit/teste l’image Docker. Aucune image n’est publiée dans un registre.
 
-### Publier via un tunnel Cloudflare nommé (compatible SSE)
+### Publier via un tunnel Cloudflare nommé (compatible WebSocket)
 
-**Ne pas utiliser un Quick Tunnel** (`cloudflared tunnel --url ...` / `trycloudflare.com`) : [Cloudflare indique que SSE n’y est pas pris en charge](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/). L’application conserve SSE, sans polling.
+La synchronisation utilise maintenant **WebSocket**, sans SSE ni polling. Les connexions WebSocket sont [prises en charge par Cloudflare](https://developers.cloudflare.com/network/websockets/).
+
+Un tunnel nommé permet une adresse stable. Pour un essai temporaire, après lancement **local HTTP sans l’overlay tunnel**, vous pouvez aussi exécuter `cloudflared tunnel --url http://localhost:8080` sur la machine hôte, puis ouvrir l’URL HTTPS affichée. Les cookies sont non-Secure dans ce mode temporaire local ; l’overlay de tunnel nommé active Secure.
 
 1. Créer un tunnel nommé dans le tableau de bord Cloudflare. Un compte et un domaine géré par Cloudflare sont nécessaires pour cette procédure.
 2. Ajouter une route publique, par exemple `planning.votre-domaine.fr`, avec le service HTTP **`http://app:8080`**. `app` est le nom du service Docker ; ne pas mettre `localhost` dans cette configuration.
@@ -120,27 +122,25 @@ Les données restent **en mémoire** : un redémarrage efface la salle. Déploye
 - [Tomcat 10.1](https://tomcat.apache.org/tomcat-10.1-doc/)
 
 
-## SSE et identification de la version
+## WebSocket et identification de la version
 
-La version **1.0.0-rc.2** affiche `RC.2` près du logo. Les textes principaux et boutons font 18px par défaut ; les informations secondaires font au moins 15,75px. Après redéploiement, vérifier ce badge et recharger avec Ctrl+F5.
+La version **1.0.0-rc.3** affiche `RC.3` près du logo. Les textes principaux et boutons font 18px par défaut ; les informations secondaires font au moins 15,75px. Après redéploiement, vérifier ce badge et recharger avec Ctrl+F5.
 
-`GET /api/session/events` fournit `text/event-stream` avec un état personnalisé par participant à chaque connexion et changement (arrivée, vote, révélation, nouveau tour, départ). Les votes restent confidentiels jusqu’à révélation. Le flux se ferme au départ, à la destruction de l’écran ou lorsque l’expiration de la session est détectée. EventSource se reconnecte après une coupure ; un snapshot complet resynchronise le navigateur. Le flux est renouvelé après 30 minutes pour revérifier la session HTTP. Un commentaire de maintien de connexion n’entraîne aucune nouvelle requête HTTP.
+`/api/session/ws` reçoit une connexion WebSocket authentifiée par la session HTTP existante. Le serveur envoie un état personnalisé (`type: state`) à chaque connexion et changement. Les votes restent confidentiels jusqu’à révélation. Le navigateur choisit `ws://` en local HTTP et `wss://` en HTTPS, avec reconnexion automatique après coupure et snapshot complet. Le départ ferme la connexion ; le serveur maintient les connexions inactives par un heartbeat, sans nouvelles requêtes HTTP.
 
-Le reverse proxy doit laisser passer `/api/session/events`, désactiver la mise en tampon et autoriser les connexions longues. Exemple Nginx (adapter la cible) :
+Dans F12 → Réseau → WS, la connexion doit obtenir **101 Switching Protocols** et recevoir des messages. Si un proxy autre que Cloudflare est ajouté, autoriser l’Upgrade WebSocket. Exemple Nginx :
 
 ```nginx
-location /api/session/events {
+location /api/session/ws {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_buffering off;
-    proxy_cache off;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
     proxy_read_timeout 60s;
 }
 ```
 
-Dans l’onglet Réseau du navigateur, un flux `events` reste ouvert. Les requêtes de vote/révélation sont déclenchées uniquement par les actions utilisateur ; un GET initial restaure la session, et un GET de diagnostic peut suivre une erreur de flux. Aucune requête de ressource vers un domaine externe.
+Le front ne charge aucune ressource externe. Les commandes de vote et de révélation restent des appels HTTP uniquement sur action utilisateur.
 
-Référence : [Server-sent events (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events).
-
-Validation SSE du JAR, sans dépendance Python externe : `python3 scripts/smoke-sse.py` (Java 21 dans le PATH). Ce scénario est aussi exécuté dans la CI.
+Validation WebSocket du JAR, sans dépendance Python externe : `python3 scripts/smoke-websocket.py` (Java 21 dans le PATH). Ce scénario est aussi exécuté dans la CI.

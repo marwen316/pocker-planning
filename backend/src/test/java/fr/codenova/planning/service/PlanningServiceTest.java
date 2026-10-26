@@ -118,7 +118,7 @@ class PlanningServiceTest {
     var clock = new MutableClock();
     var service = new PlanningService(clock);
     var id = service.join(null, new Join("Alice", "Test", Role.DEVELOPER));
-    service.subscribe(id);
+    service.subscribe(id, new RecordingConnection());
     clock.now = clock.now.plusSeconds(120);
     service.heartbeat();
     assertThat(service.state(id).participants()).hasSize(1);
@@ -130,5 +130,49 @@ class PlanningServiceTest {
     long before = service.state(alice).revision();
     assertThat(service.state(alice).revision()).isEqualTo(before);
     assertThat(service.vote(alice, "8").revision()).isGreaterThan(before);
+  }
+
+  static class RecordingConnection implements LiveConnection {
+    final java.util.List<fr.codenova.planning.api.Contracts.State> states =
+        new java.util.ArrayList<>();
+    boolean closed;
+
+    public void state(fr.codenova.planning.api.Contracts.State state) {
+      states.add(state);
+    }
+
+    public void heartbeat() {}
+
+    public void close() {
+      closed = true;
+    }
+
+    fr.codenova.planning.api.Contracts.State last() {
+      return states.getLast();
+    }
+  }
+
+  @Test
+  void liveChangesStayPrivateAndReconnectRestoresState() {
+    var alice = dev("Alice");
+    var bob = dev("Bob");
+    var a = new RecordingConnection();
+    var b = new RecordingConnection();
+    service.subscribe(alice, a);
+    service.subscribe(bob, b);
+    service.vote(alice, "21");
+    assertThat(a.last().participants().getFirst().card()).isEqualTo("21");
+    assertThat(b.last().participants().getFirst().card()).isNull();
+    service.vote(bob, "5");
+    service.reveal(alice);
+    assertThat(b.last().participants().getFirst().card()).isEqualTo("21");
+    service.disconnect(bob, b);
+    var reconnected = new RecordingConnection();
+    service.subscribe(bob, reconnected);
+    assertThat(reconnected.last().revealed()).isTrue();
+    service.next(alice, "Next");
+    assertThat(reconnected.last().participants()).allMatch(p -> p.card() == null);
+    service.leave(bob);
+    assertThat(reconnected.closed).isTrue();
   }
 }
