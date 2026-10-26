@@ -1,0 +1,15 @@
+# Overlay: docker compose -f compose.yaml -f compose.tunnel.yaml up -d --build
+services:
+  app:
+    environment:
+      COOKIE_SECURE: "true"
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.3
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?Renseigner TUNNEL_TOKEN dans le fichier .env}
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped

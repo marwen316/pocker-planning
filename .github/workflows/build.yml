@@ -1,4 +1,4 @@
-name: Build WAR
+name: Build JAR and Docker
 on: [push, pull_request, workflow_dispatch]
 jobs:
   verify:
@@ -16,5 +16,20 @@ jobs:
       - run: python3 scripts/smoke-sse.py
       - uses: actions/upload-artifact@v4
         with:
-          name: pocker-planning-war
-          path: target/pocker-planning.war
+          name: pocker-planning-jar
+          path: target/pocker-planning.jar
+      - name: Build Docker image
+        run: docker build -t pocker-planning:dev2 .
+      - name: Validate Compose configurations
+        env:
+          TUNNEL_TOKEN: ci-placeholder-not-a-real-token
+        run: |
+          docker compose config --quiet
+          docker compose -f compose.yaml -f compose.tunnel.yaml config --quiet
+      - name: Check Docker startup
+        run: |
+          docker compose up -d --wait --wait-timeout 120
+          curl --fail http://localhost:8080/ > /dev/null
+      - name: Stop Docker
+        if: always()
+        run: docker compose down

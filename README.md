@@ -1,6 +1,6 @@
 # Planning Room — Poker planning
 
-Application d’estimation collective : Angular 20, Spring Boot 3.5, Java 21, WAR unique. Interface française responsive, détection de changements Angular sans Zone.js.
+Application d’estimation collective : Angular 20, Spring Boot 3.5, Java 21, JAR exécutable sur `dev2`. Interface française responsive, détection de changements Angular sans Zone.js.
 
 ## Fonctionnement
 
@@ -13,22 +13,73 @@ Application d’estimation collective : Angular 20, Spring Boot 3.5, Java 21, WA
 - Les votes des autres sont absents des réponses API avant révélation. Les droits sont contrôlés par le serveur.
 - Synchronisation par SSE : une connexion persistante reçoit les changements ; aucun polling périodique. Le serveur envoie un commentaire keepalive toutes les 15 secondes sur cette même connexion. Départ explicite ou retrait après 60 secondes sans connexion SSE active après détection de la déconnexion. Un nouvel arrivant développeur doit voter avant une révélation par développeur.
 
-## Construire le WAR
+## Branche dev2 : JAR, Docker et tunnel Cloudflare
 
-Prérequis : **JDK 21**, **Maven 3.9+**, accès aux registres Maven et npm. Maven installe Node 22 et npm pour le frontend.
+Cette branche produit un **JAR exécutable Java 21** avec Angular intégré et Tomcat embarqué. La branche `main` conserve le livrable WAR pour Tomcat externe. Le JAR de `dev2` se lance à la racine `/`.
+
+### Lancer avec Docker (sans JDK ni Node sur la machine)
+
+Prérequis : Docker Engine/Docker Desktop avec Compose v2.
+
+```sh
+git switch dev2
+docker compose up -d --build --wait
+```
+
+Ouvrir **http://localhost:8080/**. Pour choisir un autre port, copier `.env.example` vers `.env` (`cp .env.example .env` sous Linux/macOS, `Copy-Item .env.example .env` sous PowerShell), puis modifier `APP_PORT`.
+
+```sh
+docker compose logs -f app
+docker compose down
+```
+
+L’image est `pocker-planning:dev2`. Le Dockerfile compile Angular dans une étape Node, exécute les tests Java dans une étape Maven/Java 21 et utilise un JRE 21 avec un utilisateur non privilégié pour le conteneur final. Le port est accessible uniquement depuis la machine locale ; le connecteur Cloudflare rejoint directement le service sur le réseau Compose.
+
+### Construire et lancer le JAR sans Docker
+
+Prérequis : JDK 21, Maven 3.9+, accès aux registres Maven/npm pendant la construction.
 
 ```sh
 mvn clean verify
-java -jar target/pocker-planning.war
+java -jar target/pocker-planning.jar
 ```
 
-Ouvrir http://localhost:8080. Le WAR contient le frontend compilé et le backend. La CI GitHub Actions exécute les tests, compile Angular puis publie l’artifact `pocker-planning-war`.
+Ouvrir **http://localhost:8080/**. La CI produit l’artifact `pocker-planning-jar`, vérifie le scénario SSE réel et construit/teste l’image Docker. Aucune image n’est publiée dans un registre.
 
-## Déploiement Tomcat
+### Publier via un tunnel Cloudflare nommé (compatible SSE)
 
-Utiliser **Tomcat 10.1 avec Java 21**. Copier `target/pocker-planning.war` dans `webapps/`, puis ouvrir `https://votre-serveur/pocker-planning/` (barre finale). Le frontend utilise des URL relatives pour fonctionner sous ce contexte. Tomcat 9 utilise javax et ne convient pas.
+**Ne pas utiliser un Quick Tunnel** (`cloudflared tunnel --url ...` / `trycloudflare.com`) : [Cloudflare indique que SSE n’y est pas pris en charge](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/). L’application conserve SSE, sans polling.
 
-En production HTTPS, définir `COOKIE_SECURE=true`. Configurer le reverse proxy et HTTPS ; ne pas exposer ce prototype directement à Internet sans restriction d’accès réseau.
+1. Créer un tunnel nommé dans le tableau de bord Cloudflare. Un compte et un domaine géré par Cloudflare sont nécessaires pour cette procédure.
+2. Ajouter une route publique, par exemple `planning.votre-domaine.fr`, avec le service HTTP **`http://app:8080`**. `app` est le nom du service Docker ; ne pas mettre `localhost` dans cette configuration.
+3. Copier `.env.example` vers `.env` et y renseigner le jeton du connecteur dans `TUNNEL_TOKEN`. Ce fichier est ignoré par Git et exclu du contexte Docker. Ne pas partager le jeton.
+4. Lancer :
+
+```sh
+docker compose -f compose.yaml -f compose.tunnel.yaml up -d --build --wait
+docker compose -f compose.yaml -f compose.tunnel.yaml logs -f cloudflared
+```
+
+Accéder ensuite à **`https://planning.votre-domaine.fr/`**. Ce mode active les cookies Secure : utiliser l’URL HTTPS publique pour rejoindre la salle, pas l’adresse locale HTTP. Le tunnel n’est créé/public que lorsque vous avez configuré Cloudflare et lancé le connecteur avec votre propre jeton.
+
+Pour arrêter le tunnel :
+
+```sh
+docker compose -f compose.yaml -f compose.tunnel.yaml down
+```
+
+Pour revenir au mode local HTTP :
+
+```sh
+docker compose -f compose.yaml -f compose.tunnel.yaml down
+docker compose up -d --wait
+```
+
+Sans règle Cloudflare Access, toute personne connaissant l’URL peut rejoindre la salle. Pour un usage réservé à l’équipe, configurer une application Access sur ce nom de domaine. Les participants et votes restent en mémoire et sont effacés au redémarrage du conteneur.
+
+Le frontend n’utilise ni CDN ni police distante. La construction et le téléchargement des images nécessitent Internet ; `cloudflared` communique avec Cloudflare pour fournir le tunnel.
+
+Références : [création du tunnel](https://developers.cloudflare.com/tunnel/get-started/), [jeton cloudflared](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/configure-tunnels/run-parameters/).
 
 ## Développement
 
@@ -60,11 +111,11 @@ frontend/src/styles.css  Design responsive et mouvements réduits
 
 Version initiale pour une équipe de confiance : rôles autodéclarés, pas d’authentification d’entreprise. Une session HTTP identifie le participant avec cookie HttpOnly/SameSite Strict. Deux onglets d’un même navigateur partagent la même identité ; utiliser deux profils ou une fenêtre privée pour tester plusieurs personnes.
 
-Les données restent **en mémoire** : un redémarrage efface la salle. Déployer une seule instance ; plusieurs instances nécessiteraient un stockage partagé. Pas d’historique ni de gestion de plusieurs salles. La moyenne est indicative et exclut les cartes café. Toutes les ressources sont servies par le WAR ; polices système locales, sans Google Fonts ni CDN. Aucun accès Internet nécessaire à l’exécution. La construction initiale utilise les registres Maven/npm.
+Les données restent **en mémoire** : un redémarrage efface la salle. Déployer une seule instance ; plusieurs instances nécessiteraient un stockage partagé. Pas d’historique ni de gestion de plusieurs salles. La moyenne est indicative et exclut les cartes café. Toutes les ressources sont servies par le JAR ; polices système locales, sans Google Fonts ni CDN. Aucun accès Internet nécessaire à l’exécution. La construction initiale utilise les registres Maven/npm.
 
 ## Références
 
-- [Déploiement WAR Spring Boot](https://docs.spring.io/spring-boot/how-to/deployment/traditional-deployment.html)
+- [JAR exécutable Spring Boot](https://docs.spring.io/spring-boot/maven-plugin/packaging.html)
 - [Documentation Angular](https://angular.dev/overview)
 - [Tomcat 10.1](https://tomcat.apache.org/tomcat-10.1-doc/)
 
@@ -75,10 +126,10 @@ La version **1.0.0-rc.2** affiche `RC.2` près du logo. Les textes principaux et
 
 `GET /api/session/events` fournit `text/event-stream` avec un état personnalisé par participant à chaque connexion et changement (arrivée, vote, révélation, nouveau tour, départ). Les votes restent confidentiels jusqu’à révélation. Le flux se ferme au départ, à la destruction de l’écran ou lorsque l’expiration de la session est détectée. EventSource se reconnecte après une coupure ; un snapshot complet resynchronise le navigateur. Le flux est renouvelé après 30 minutes pour revérifier la session HTTP. Un commentaire de maintien de connexion n’entraîne aucune nouvelle requête HTTP.
 
-Le reverse proxy doit laisser passer `/pocker-planning/api/session/events`, désactiver la mise en tampon et autoriser les connexions longues. Exemple Nginx (adapter la cible) :
+Le reverse proxy doit laisser passer `/api/session/events`, désactiver la mise en tampon et autoriser les connexions longues. Exemple Nginx (adapter la cible) :
 
 ```nginx
-location /pocker-planning/api/session/events {
+location /api/session/events {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
     proxy_set_header Connection "";
@@ -92,4 +143,4 @@ Dans l’onglet Réseau du navigateur, un flux `events` reste ouvert. Les requê
 
 Référence : [Server-sent events (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events).
 
-Validation SSE du WAR, sans dépendance Python externe : `python3 scripts/smoke-sse.py` (Java 21 dans le PATH). Ce scénario est aussi exécuté dans la CI.
+Validation SSE du JAR, sans dépendance Python externe : `python3 scripts/smoke-sse.py` (Java 21 dans le PATH). Ce scénario est aussi exécuté dans la CI.

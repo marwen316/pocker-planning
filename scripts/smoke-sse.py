@@ -1,4 +1,4 @@
-"""Exercise the packaged WAR with real HTTP sessions and SSE connections (stdlib only)."""
+"""Exercise the packaged JAR with real HTTP sessions and SSE connections (stdlib only)."""
 import argparse
 import http.cookiejar
 import json
@@ -10,13 +10,13 @@ import urllib.error
 import urllib.request
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('war', nargs='?', default='target/pocker-planning.war')
+parser.add_argument('archive', nargs='?', default='target/pocker-planning.jar')
 parser.add_argument('--java', default='java')
 args = parser.parse_args()
 with socket.socket() as reservation:
     reservation.bind(('127.0.0.1', 0))
     port = reservation.getsockname()[1]
-root = f'http://127.0.0.1:{port}/pocker-planning/'
+root = f'http://127.0.0.1:{port}/'
 
 
 def browser():
@@ -68,8 +68,7 @@ def card(snapshot, name):
 
 streams = []
 with tempfile.TemporaryFile(mode='w+') as log:
-    process = subprocess.Popen([args.java, '-jar', args.war, f'--server.port={port}',
-        '--server.servlet.context-path=/pocker-planning'], stdout=log, stderr=subprocess.STDOUT)
+    process = subprocess.Popen([args.java, '-jar', args.archive, f'--server.port={port}'], stdout=log, stderr=subprocess.STDOUT)
     try:
         alice, bob, visitor = browser(), browser(), browser()
         for _ in range(80):
@@ -78,10 +77,10 @@ with tempfile.TemporaryFile(mode='w+') as log:
                 break
             except urllib.error.URLError:
                 if process.poll() is not None:
-                    raise AssertionError('WAR exited during startup')
+                    raise AssertionError('JAR exited during startup')
                 time.sleep(.25)
         else:
-            raise AssertionError('WAR did not start in 20 seconds')
+            raise AssertionError('JAR did not start in 20 seconds')
         assert status == 200 and '<app-root>' in html
         assert request(visitor, 'api/session/events')[0] == 401
         for client, name in [(alice, 'Alice'), (bob, 'Bob')]:
@@ -127,7 +126,7 @@ with tempfile.TemporaryFile(mode='w+') as log:
         assert len(state(a)['participants']) == 2
         request(alice, 'api/session', 'DELETE')
         request(visitor, 'api/session', 'DELETE')
-        print('SSE smoke passed: real WAR, context path, push, privacy, reconnect, roles, reset, heartbeat, leave.')
+        print('SSE smoke passed: real JAR, context path, push, privacy, reconnect, roles, reset, heartbeat, leave.')
     except BaseException:
         log.seek(0)
         print(log.read())
